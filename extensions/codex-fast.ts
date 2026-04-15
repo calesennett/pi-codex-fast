@@ -2,6 +2,24 @@ import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@mari
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
+const PRIORITY_COST_MULTIPLIER = 2;
+
+interface UsageCost {
+	input?: number;
+	output?: number;
+	cacheRead?: number;
+	cacheWrite?: number;
+	total?: number;
+}
+
+interface AssistantUsage {
+	cost?: UsageCost;
+}
+
+interface AssistantLikeMessage {
+	role?: string;
+	usage?: AssistantUsage;
+}
 
 type InternalSettingsManager = SettingsManager & {
 	globalSettings: Record<string, unknown>;
@@ -85,9 +103,47 @@ function reportSettingsErrors(settingsManager: SettingsManager, ctx: ExtensionCo
 	}
 }
 
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === "number" && Number.isFinite(value);
+}
+
+function cloneUsageCost(cost: UsageCost): UsageCost {
+	return { ...cost };
+}
+
+export function applyPriorityCostMultiplier(cost: UsageCost, multiplier = PRIORITY_COST_MULTIPLIER): UsageCost {
+	const adjusted = cloneUsageCost(cost);
+
+	if (isFiniteNumber(adjusted.input)) adjusted.input *= multiplier;
+	if (isFiniteNumber(adjusted.output)) adjusted.output *= multiplier;
+	if (isFiniteNumber(adjusted.cacheRead)) adjusted.cacheRead *= multiplier;
+	if (isFiniteNumber(adjusted.cacheWrite)) adjusted.cacheWrite *= multiplier;
+	if (isFiniteNumber(adjusted.total)) adjusted.total *= multiplier;
+
+	return adjusted;
+}
+
+export function adjustAssistantMessageCost(message: AssistantLikeMessage, multiplier = PRIORITY_COST_MULTIPLIER): boolean {
+	if (message.role !== "assistant") return false;
+	if (!message.usage?.cost) return false;
+
+	message.usage.cost = applyPriorityCostMultiplier(message.usage.cost, multiplier);
+	return true;
+}
+
 export default function codexFastExtension(pi: ExtensionAPI): void {
 	let fastModeEnabled = false;
 	let settingsWriteQueue: Promise<void> = Promise.resolve();
+	const adjustedMessages = new WeakSet<object>();
+
+	function maybeAdjustMessageCost(message: AssistantLikeMessage | undefined): void {
+		if (!fastModeEnabled || !message || adjustedMessages.has(message as object)) {
+			return;
+		}
+		if (adjustAssistantMessageCost(message)) {
+			adjustedMessages.add(message as object);
+		}
+	}
 
 	function persistState(enabled: boolean, ctx: ExtensionContext): void {
 		const cwd = ctx.cwd;
@@ -125,7 +181,7 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 		}
 
 		if (supportsPriorityServiceTier(ctx)) {
-			ctx.ui.notify("Fast mode enabled. OpenAI/OpenAI Codex requests will send service_tier=priority.", "info");
+			ctx.ui.notify("Fast mode enabled. OpenAI/OpenAI Codex requests will send service_tier=priority and cost will be tracked at 2x.", "info");
 			return;
 		}
 
@@ -191,6 +247,16 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 
 	pi.on("model_select", async (_event, ctx) => {
 		updateStatus(ctx);
+	});
+
+	pi.on("turn_end", async (event, ctx) => {
+		if (!supportsPriorityServiceTier(ctx)) return;
+		maybeAdjustMessageCost(event.message as AssistantLikeMessage);
+	});
+
+	pi.on("message_end", async (event, ctx) => {
+		if (!supportsPriorityServiceTier(ctx)) return;
+		maybeAdjustMessageCost(event.message as AssistantLikeMessage);
 	});
 
 	pi.on("before_provider_request", (event, ctx) => {

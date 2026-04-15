@@ -32,4 +32,6 @@ The extension only patches OpenAI provider payloads when all of these are true:
 - fast mode is enabled
 - the active model provider is `openai` or `openai-codex`
 
+When a fast-mode assistant response finishes, the extension also doubles the reported `usage.cost` fields so downstream cost trackers reflect priority-tier pricing.
+
 All other requests are left unchanged.

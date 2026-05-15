@@ -1,4 +1,4 @@
-import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@mariozechner/pi-coding-agent";
+import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
@@ -113,7 +113,7 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 			return;
 		}
 
-		const label = supportsPriorityServiceTier(ctx) ? "⚡ OpenAI fast mode" : "⚡ fast (inactive)";
+		const label = supportsPriorityServiceTier(ctx) ? "fast" : "fast (inactive)";
 		ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("accent", label));
 	}
 

@@ -1,15 +1,10 @@
-import { SettingsManager, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
-
-type InternalSettingsManager = SettingsManager & {
-	globalSettings: Record<string, unknown>;
-	markModified(field: string, nestedKey?: string): void;
-	save(): void;
-};
-
-const settingsManagers = new Map<string, SettingsManager>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -24,19 +19,26 @@ function asObject(value: unknown): Record<string, unknown> | null {
 	return value as Record<string, unknown>;
 }
 
-function getSettingsManager(cwd: string): SettingsManager {
-	const existing = settingsManagers.get(cwd);
-	if (existing) return existing;
-
-	const settingsManager = SettingsManager.create(cwd);
-	settingsManagers.set(cwd, settingsManager);
-	return settingsManager;
+function globalSettingsPath(): string {
+	return join(process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"), "settings.json");
 }
 
-function mergeSettings(
-	base: Record<string, unknown>,
-	overrides: Record<string, unknown>,
-): Record<string, unknown> {
+function projectSettingsPath(cwd: string): string {
+	return join(cwd, ".pi", "settings.json");
+}
+
+async function readSettings(path: string): Promise<Record<string, unknown>> {
+	try {
+		const content = await readFile(path, "utf8");
+		const settings = JSON.parse(content);
+		return isRecord(settings) ? settings : {};
+	} catch (error) {
+		if (isRecord(error) && error.code === "ENOENT") return {};
+		throw error;
+	}
+}
+
+function mergeSettings(base: Record<string, unknown>, overrides: Record<string, unknown>): Record<string, unknown> {
 	const merged: Record<string, unknown> = { ...base };
 	for (const [key, overrideValue] of Object.entries(overrides)) {
 		const baseValue = merged[key];
@@ -49,40 +51,25 @@ function mergeSettings(
 	return merged;
 }
 
-function getEffectiveSettings(settingsManager: SettingsManager): Record<string, unknown> {
-	return mergeSettings(
-		settingsManager.getGlobalSettings() as Record<string, unknown>,
-		settingsManager.getProjectSettings() as Record<string, unknown>,
+async function loadPersistedFastMode(cwd: string): Promise<boolean | undefined> {
+	const settings = mergeSettings(
+		await readSettings(globalSettingsPath()),
+		await readSettings(projectSettingsPath(cwd)),
 	);
-}
-
-function loadPersistedFastMode(cwd: string): boolean | undefined {
-	const settingsManager = getSettingsManager(cwd);
-	settingsManager.reload();
-	const settings = getEffectiveSettings(settingsManager);
 	const extensionSettings = asObject(settings[SETTINGS_KEY]);
 	return typeof extensionSettings?.enabled === "boolean" ? extensionSettings.enabled : undefined;
 }
 
-function persistFastMode(enabled: boolean, cwd: string): SettingsManager {
-	const settingsManager = getSettingsManager(cwd) as InternalSettingsManager;
-	settingsManager.reload();
-	const globalSettings = settingsManager.getGlobalSettings() as Record<string, unknown>;
+async function persistFastMode(enabled: boolean): Promise<void> {
+	const path = globalSettingsPath();
+	const globalSettings = await readSettings(path);
 	const extensionSettings = asObject(globalSettings[SETTINGS_KEY]) ?? {};
-	settingsManager.globalSettings[SETTINGS_KEY] = {
+	globalSettings[SETTINGS_KEY] = {
 		...extensionSettings,
 		enabled,
 	};
-	settingsManager.markModified(SETTINGS_KEY);
-	settingsManager.save();
-	return settingsManager;
-}
-
-function reportSettingsErrors(settingsManager: SettingsManager, ctx: ExtensionContext, action: "load" | "write"): void {
-	if (!ctx.hasUI) return;
-	for (const { scope, error } of settingsManager.drainErrors()) {
-		ctx.ui.notify(`pi-codex-fast: failed to ${action} ${scope} settings: ${error.message}`, "warning");
-	}
+	await mkdir(dirname(path), { recursive: true });
+	await writeFile(path, `${JSON.stringify(globalSettings, null, 2)}\n`);
 }
 
 export default function codexFastExtension(pi: ExtensionAPI): void {
@@ -90,14 +77,9 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	let settingsWriteQueue: Promise<void> = Promise.resolve();
 
 	function persistState(enabled: boolean, ctx: ExtensionContext): void {
-		const cwd = ctx.cwd;
 		settingsWriteQueue = settingsWriteQueue
 			.catch(() => undefined)
-			.then(async () => {
-				const settingsManager = persistFastMode(enabled, cwd);
-				await settingsManager.flush();
-				reportSettingsErrors(settingsManager, ctx, "write");
-			});
+			.then(() => persistFastMode(enabled));
 
 		void settingsWriteQueue.catch((error) => {
 			if (!ctx.hasUI) return;
@@ -144,13 +126,10 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	}
 
 	async function reloadFastModeState(ctx: ExtensionContext, options?: { includeStartupFlag?: boolean }): Promise<void> {
-		await settingsWriteQueue.catch(() => undefined);
 		fastModeEnabled = false;
 
 		try {
-			const settingsManager = getSettingsManager(ctx.cwd);
-			const persistedEnabled = loadPersistedFastMode(ctx.cwd);
-			reportSettingsErrors(settingsManager, ctx, "load");
+			const persistedEnabled = await loadPersistedFastMode(ctx.cwd);
 			if (typeof persistedEnabled === "boolean") {
 				fastModeEnabled = persistedEnabled;
 			}

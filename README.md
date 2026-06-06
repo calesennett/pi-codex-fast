@@ -16,14 +16,14 @@ From CLI:
 
 ## Persistence
 
-The enabled/disabled state is read via pi's `SettingsManager`:
+The enabled/disabled state is read from pi's settings files:
 
 - global: `$PI_CODING_AGENT_DIR/settings.json` (or `~/.pi/agent/settings.json`)
 - project override: `<cwd>/.pi/settings.json`
 
 under the key `pi-codex-fast.enabled`.
 
-Writes go to the global settings file, matching pi's default `SettingsManager` behavior.
+Writes go to the global settings file.
 
 ## Behavior
 

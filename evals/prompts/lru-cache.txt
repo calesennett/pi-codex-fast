@@ -1,0 +1,8 @@
+Write one bounded TypeScript LRU cache implementation.
+
+Requirements:
+- Output only TypeScript source code.
+- Do not use markdown fences or explanations.
+- Implement a generic LRUCache<K, V> class with get, set, has, delete, clear, size, and capacity behavior.
+- Keep the implementation self-contained, readable, and production-minded.
+- Target 80–130 lines of code.

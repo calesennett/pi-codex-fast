@@ -5,13 +5,20 @@ import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-cod
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
+const PRIORITY_MODELS = ["openai-codex/gpt-5.4", "openai-codex/gpt-5.5"];
+const PRIORITY_MODEL_LABEL = PRIORITY_MODELS.join(" or ");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function currentModelName(ctx: ExtensionContext): string | undefined {
+	return ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+}
+
 function supportsPriorityServiceTier(ctx: ExtensionContext): boolean {
-	return ctx.model?.provider === "openai" || ctx.model?.provider === "openai-codex";
+	const modelName = currentModelName(ctx);
+	return modelName !== undefined && PRIORITY_MODELS.includes(modelName);
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -102,18 +109,18 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	function notifyState(ctx: ExtensionContext): void {
 		if (!ctx.hasUI) return;
 		if (!fastModeEnabled) {
-			ctx.ui.notify("Fast mode disabled. OpenAI/OpenAI Codex requests will use the default service tier.", "info");
+			ctx.ui.notify("Fast mode disabled. Requests will use the default service tier.", "info");
 			return;
 		}
 
 		if (supportsPriorityServiceTier(ctx)) {
-			ctx.ui.notify("Fast mode enabled. OpenAI/OpenAI Codex requests will send service_tier=priority.", "info");
+			ctx.ui.notify(`Fast mode enabled. ${PRIORITY_MODEL_LABEL} requests will send service_tier=priority.`, "info");
 			return;
 		}
 
-		const modelLabel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "no active model";
+		const modelLabel = currentModelName(ctx) ?? "no active model";
 		ctx.ui.notify(
-			`Fast mode enabled. It will apply once you switch to an OpenAI or OpenAI Codex model (current: ${modelLabel}).`,
+			`Fast mode enabled, but inactive for ${modelLabel}. Switch to ${PRIORITY_MODEL_LABEL} to use it.`,
 			"info",
 		);
 	}
@@ -148,13 +155,13 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	}
 
 	pi.registerFlag("fast", {
-		description: "Start with fast mode enabled (adds service_tier=priority to OpenAI/OpenAI Codex requests)",
+		description: `Start with fast mode enabled (adds service_tier=priority to ${PRIORITY_MODEL_LABEL} requests)`,
 		type: "boolean",
 		default: false,
 	});
 
 	pi.registerCommand("codex-fast", {
-		description: "Toggle OpenAI/OpenAI Codex priority service tier",
+		description: `Toggle ${PRIORITY_MODEL_LABEL} priority service tier`,
 		handler: async (_args, ctx) => {
 			setFastMode(!fastModeEnabled, ctx);
 		},
@@ -174,10 +181,6 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 
 	pi.on("before_provider_request", (event, ctx) => {
 		if (!fastModeEnabled || !supportsPriorityServiceTier(ctx) || !isRecord(event.payload)) {
-			return;
-		}
-
-		if (Object.prototype.hasOwnProperty.call(event.payload, "service_tier")) {
 			return;
 		}
 

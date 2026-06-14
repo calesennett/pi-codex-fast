@@ -33,3 +33,16 @@ The extension only patches provider payloads when all of these are true:
 - the active model is `openai-codex/gpt-5.4` or `openai-codex/gpt-5.5`
 
 All other requests are left unchanged.
+
+## Example benchmark
+
+A local live benchmark is available in this repository under `evals/`; one 3-trial run produced:
+
+```text
+Medians
+metric  baseline  fast     speedup
+------  --------  -------  -------
+TTFB    15205ms   11870ms  1.28x
+turn    24262ms   16157ms  1.50x
+wall    24585ms   16384ms  1.50x
+```

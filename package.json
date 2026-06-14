@@ -8,6 +8,11 @@
     "pi-extension",
     "codex"
   ],
+  "files": [
+    "README.md",
+    "assets/",
+    "extensions/"
+  ],
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   }

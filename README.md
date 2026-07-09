@@ -2,7 +2,7 @@
 
 ![pi-codex-fast screenshot](https://raw.githubusercontent.com/calesennett/pi-codex-fast/main/assets/pi-codex-fast.png)
 
-Fast-mode extension for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) that injects `service_tier: "priority"` into `openai-codex/gpt-5.4` and `openai-codex/gpt-5.5` requests.
+Fast-mode extension for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) that injects `service_tier: "priority"` into supported OpenAI Codex model requests.
 
 ## Usage
 
@@ -30,7 +30,7 @@ Writes go to the global settings file.
 The extension only patches provider payloads when all of these are true:
 
 - fast mode is enabled
-- the active model is `openai-codex/gpt-5.4` or `openai-codex/gpt-5.5`
+- the active model is `openai-codex/gpt-5.4`, `openai-codex/gpt-5.5`, `openai-codex/gpt-5.6-luna`, `openai-codex/gpt-5.6-sol`, or `openai-codex/gpt-5.6-terra`
 
 All other requests are left unchanged.
 

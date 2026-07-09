@@ -5,7 +5,13 @@ import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-cod
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
-const PRIORITY_MODELS = ["openai-codex/gpt-5.4", "openai-codex/gpt-5.5"];
+const PRIORITY_MODELS = [
+	"openai-codex/gpt-5.4",
+	"openai-codex/gpt-5.5",
+	"openai-codex/gpt-5.6-luna",
+	"openai-codex/gpt-5.6-sol",
+	"openai-codex/gpt-5.6-terra",
+];
 const PRIORITY_MODEL_LABEL = PRIORITY_MODELS.join(" or ");
 
 function isRecord(value: unknown): value is Record<string, unknown> {

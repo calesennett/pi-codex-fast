@@ -5,8 +5,13 @@ import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-cod
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
-const PRIORITY_MODELS = ["openai-codex/gpt-5.4", "openai-codex/gpt-5.5"];
-const PRIORITY_MODEL_LABEL = PRIORITY_MODELS.join(" or ");
+const PRIORITY_MODELS = [
+	"openai-codex/gpt-5.4",
+	"openai-codex/gpt-5.5",
+	"openai-codex/gpt-5.6-sol",
+	"openai-codex/gpt-5.6-terra",
+	"openai-codex/gpt-5.6-luna",
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -113,16 +118,13 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 			return;
 		}
 
+		const modelLabel = currentModelName(ctx) ?? "no active model";
 		if (supportsPriorityServiceTier(ctx)) {
-			ctx.ui.notify(`Fast mode enabled. ${PRIORITY_MODEL_LABEL} requests will send service_tier=priority.`, "info");
+			ctx.ui.notify(`Fast mode enabled (${modelLabel}).`, "info");
 			return;
 		}
 
-		const modelLabel = currentModelName(ctx) ?? "no active model";
-		ctx.ui.notify(
-			`Fast mode enabled, but inactive for ${modelLabel}. Switch to ${PRIORITY_MODEL_LABEL} to use it.`,
-			"info",
-		);
+		ctx.ui.notify(`Fast mode enabled but inactive (${modelLabel}).`, "info");
 	}
 
 	function setFastMode(enabled: boolean, ctx: ExtensionContext, options?: { persist?: boolean; notify?: boolean }): void {
@@ -155,13 +157,13 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	}
 
 	pi.registerFlag("fast", {
-		description: `Start with fast mode enabled (adds service_tier=priority to ${PRIORITY_MODEL_LABEL} requests)`,
+		description: "Start with fast mode enabled",
 		type: "boolean",
 		default: false,
 	});
 
 	pi.registerCommand("codex-fast", {
-		description: `Toggle ${PRIORITY_MODEL_LABEL} priority service tier`,
+		description: "Toggle fast mode",
 		handler: async (_args, ctx) => {
 			setFastMode(!fastModeEnabled, ctx);
 		},

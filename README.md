@@ -1,6 +1,7 @@
 # pi-codex-fast
 
-![pi-codex-fast screenshot](https://raw.githubusercontent.com/calesennett/pi-codex-fast/main/assets/pi-codex-fast.png)
+<img width="679" height="485" alt="Screenshot 2026-07-11 at 10 38 19 AM" alt="Screenshot of a pi agent turn that utilizes the `pi-codex-fast` extension. User message reads, 'This is fast!'. Agent responds, 'Glad to hear it!'" src="https://github.com/user-attachments/assets/0d0bdd79-01a4-45ea-a978-da2869e31924" />
+
 
 Fast-mode extension for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) that injects `service_tier: "priority"` into supported OpenAI Codex requests.
 

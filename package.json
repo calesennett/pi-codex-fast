@@ -1,7 +1,7 @@
 {
   "name": "@calesennett/pi-codex-fast",
-  "version": "0.1.5",
-  "description": "pi extension that adds service_tier=priority to supported OpenAI Codex requests when fast mode is enabled.",
+  "version": "0.1.6",
+  "description": "pi extension that adds Fast and Ultrafast service tiers to supported OpenAI requests.",
   "type": "module",
   "keywords": [
     "pi-package",

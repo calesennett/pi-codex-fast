@@ -5,25 +5,26 @@ import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-cod
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
-const PRIORITY_MODELS = [
+const FAST_MODELS = [
 	"openai-codex/gpt-5.4",
 	"openai-codex/gpt-5.5",
 	"openai-codex/gpt-5.6-sol",
 	"openai-codex/gpt-5.6-terra",
 	"openai-codex/gpt-5.6-luna",
 ];
+const ULTRAFAST_MODELS = ["openai/gpt-5.6-sol"];
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+type SpeedMode = "off" | "fast" | "ultrafast";
 
 function currentModelName(ctx: ExtensionContext): string | undefined {
 	return ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
 }
 
-function supportsPriorityServiceTier(ctx: ExtensionContext): boolean {
+function supportsSpeedMode(ctx: ExtensionContext, mode: SpeedMode): boolean {
+	if (mode === "off") return false;
 	const modelName = currentModelName(ctx);
-	return modelName !== undefined && PRIORITY_MODELS.includes(modelName);
+	const supportedModels = mode === "fast" ? FAST_MODELS : ULTRAFAST_MODELS;
+	return modelName !== undefined && supportedModels.includes(modelName);
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -42,56 +43,49 @@ function projectSettingsPath(cwd: string): string {
 async function readSettings(path: string): Promise<Record<string, unknown>> {
 	try {
 		const content = await readFile(path, "utf8");
-		const settings = JSON.parse(content);
-		return isRecord(settings) ? settings : {};
+		return asObject(JSON.parse(content)) ?? {};
 	} catch (error) {
-		if (isRecord(error) && error.code === "ENOENT") return {};
+		if (asObject(error)?.code === "ENOENT") return {};
 		throw error;
 	}
 }
 
-function mergeSettings(base: Record<string, unknown>, overrides: Record<string, unknown>): Record<string, unknown> {
-	const merged: Record<string, unknown> = { ...base };
-	for (const [key, overrideValue] of Object.entries(overrides)) {
-		const baseValue = merged[key];
-		if (isRecord(baseValue) && isRecord(overrideValue)) {
-			merged[key] = mergeSettings(baseValue, overrideValue);
-			continue;
-		}
-		merged[key] = overrideValue;
-	}
-	return merged;
-}
-
-async function loadPersistedFastMode(cwd: string): Promise<boolean | undefined> {
-	const settings = mergeSettings(
-		await readSettings(globalSettingsPath()),
-		await readSettings(projectSettingsPath(cwd)),
-	);
+function speedModeFromSettings(settings: Record<string, unknown>): SpeedMode | undefined {
 	const extensionSettings = asObject(settings[SETTINGS_KEY]);
-	return typeof extensionSettings?.enabled === "boolean" ? extensionSettings.enabled : undefined;
+	const mode = extensionSettings?.mode;
+	if (mode === "off" || mode === "fast" || mode === "ultrafast") return mode;
+	const legacyEnabled = extensionSettings?.enabled;
+	if (typeof legacyEnabled !== "boolean") return undefined;
+	return legacyEnabled ? "fast" : "off";
 }
 
-async function persistFastMode(enabled: boolean): Promise<void> {
+async function loadPersistedSpeedMode(cwd: string): Promise<SpeedMode | undefined> {
+	const globalMode = speedModeFromSettings(await readSettings(globalSettingsPath()));
+	const projectMode = speedModeFromSettings(await readSettings(projectSettingsPath(cwd)));
+	return projectMode ?? globalMode;
+}
+
+async function persistSpeedMode(mode: SpeedMode): Promise<void> {
 	const path = globalSettingsPath();
 	const globalSettings = await readSettings(path);
 	const extensionSettings = asObject(globalSettings[SETTINGS_KEY]) ?? {};
 	globalSettings[SETTINGS_KEY] = {
 		...extensionSettings,
-		enabled,
+		enabled: mode !== "off",
+		mode,
 	};
 	await mkdir(dirname(path), { recursive: true });
 	await writeFile(path, `${JSON.stringify(globalSettings, null, 2)}\n`);
 }
 
 export default function codexFastExtension(pi: ExtensionAPI): void {
-	let fastModeEnabled = false;
+	let speedMode: SpeedMode = "off";
 	let settingsWriteQueue: Promise<void> = Promise.resolve();
 
-	function persistState(enabled: boolean, ctx: ExtensionContext): void {
+	function persistState(mode: SpeedMode, ctx: ExtensionContext): void {
 		settingsWriteQueue = settingsWriteQueue
 			.catch(() => undefined)
-			.then(() => persistFastMode(enabled));
+			.then(() => persistSpeedMode(mode));
 
 		void settingsWriteQueue.catch((error) => {
 			if (!ctx.hasUI) return;
@@ -102,46 +96,49 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 
 	function updateStatus(ctx: ExtensionContext): void {
 		if (!ctx.hasUI) return;
-		if (!fastModeEnabled) {
+		if (speedMode === "off") {
 			ctx.ui.setStatus(STATUS_KEY, undefined);
 			return;
 		}
 
-		const label = supportsPriorityServiceTier(ctx) ? "fast" : "fast (inactive)";
+		const label = speedMode === "fast" ? "Fast" : "Ultrafast";
 		ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("accent", label));
 	}
 
 	function notifyState(ctx: ExtensionContext): void {
 		if (!ctx.hasUI) return;
-		if (!fastModeEnabled) {
-			ctx.ui.notify("Fast mode disabled. Requests will use the default service tier.", "info");
+		if (speedMode === "off") {
+			ctx.ui.notify("Speed mode disabled. Requests will use the default service tier.", "info");
 			return;
 		}
 
+		const modeLabel = speedMode === "fast" ? "Fast" : "Ultrafast";
 		const modelLabel = currentModelName(ctx) ?? "no active model";
-		if (supportsPriorityServiceTier(ctx)) {
-			ctx.ui.notify(`Fast mode enabled (${modelLabel}).`, "info");
+		if (supportsSpeedMode(ctx, speedMode)) {
+			ctx.ui.notify(`${modeLabel} mode enabled (${modelLabel}).`, "info");
 			return;
 		}
 
-		ctx.ui.notify(`Fast mode enabled but inactive (${modelLabel}).`, "info");
+		ctx.ui.notify(`${modeLabel} mode enabled but inactive (${modelLabel}).`, "info");
 	}
 
-	function setFastMode(enabled: boolean, ctx: ExtensionContext, options?: { persist?: boolean; notify?: boolean }): void {
-		fastModeEnabled = enabled;
-		if (options?.persist !== false) persistState(enabled, ctx);
+	function setSpeedMode(mode: SpeedMode, ctx: ExtensionContext, options?: { persist?: boolean; notify?: boolean }): void {
+		speedMode = mode;
+		if (options?.persist !== false) persistState(mode, ctx);
 		updateStatus(ctx);
 		if (options?.notify !== false) notifyState(ctx);
 	}
 
-	async function reloadFastModeState(ctx: ExtensionContext, options?: { includeStartupFlag?: boolean }): Promise<void> {
-		fastModeEnabled = false;
+	function toggleSpeedMode(mode: "fast" | "ultrafast", ctx: ExtensionContext): void {
+		setSpeedMode(speedMode === mode ? "off" : mode, ctx);
+	}
+
+	async function reloadSpeedModeState(ctx: ExtensionContext, options?: { includeStartupFlag?: boolean }): Promise<void> {
+		speedMode = "off";
 
 		try {
-			const persistedEnabled = await loadPersistedFastMode(ctx.cwd);
-			if (typeof persistedEnabled === "boolean") {
-				fastModeEnabled = persistedEnabled;
-			}
+			const persistedMode = await loadPersistedSpeedMode(ctx.cwd);
+			if (persistedMode !== undefined) speedMode = persistedMode;
 		} catch (error) {
 			if (ctx.hasUI) {
 				const message = error instanceof Error ? error.message : String(error);
@@ -149,8 +146,9 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 			}
 		}
 
-		if (options?.includeStartupFlag && pi.getFlag("fast") === true) {
-			fastModeEnabled = true;
+		if (options?.includeStartupFlag) {
+			if (pi.getFlag("fast") === true) speedMode = "fast";
+			if (pi.getFlag("ultrafast") === true) speedMode = "ultrafast";
 		}
 
 		updateStatus(ctx);
@@ -161,20 +159,28 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 		type: "boolean",
 		default: false,
 	});
+	pi.registerFlag("ultrafast", {
+		description: "Start with ultrafast mode enabled",
+		type: "boolean",
+		default: false,
+	});
 
 	pi.registerCommand("codex-fast", {
 		description: "Toggle fast mode",
 		handler: async (_args, ctx) => {
-			setFastMode(!fastModeEnabled, ctx);
+			toggleSpeedMode("fast", ctx);
+		},
+	});
+
+	pi.registerCommand("codex-ultrafast", {
+		description: "Toggle ultrafast mode",
+		handler: async (_args, ctx) => {
+			toggleSpeedMode("ultrafast", ctx);
 		},
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
-		await reloadFastModeState(ctx, { includeStartupFlag: true });
-	});
-
-	pi.on("session_switch", async (_event, ctx) => {
-		await reloadFastModeState(ctx, { includeStartupFlag: true });
+		await reloadSpeedModeState(ctx, { includeStartupFlag: true });
 	});
 
 	pi.on("model_select", async (_event, ctx) => {
@@ -182,13 +188,13 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	});
 
 	pi.on("before_provider_request", (event, ctx) => {
-		if (!fastModeEnabled || !supportsPriorityServiceTier(ctx) || !isRecord(event.payload)) {
-			return;
-		}
+		if (speedMode === "off" || !supportsSpeedMode(ctx, speedMode)) return;
+		const payload = asObject(event.payload);
+		if (payload === null) return;
 
 		return {
-			...event.payload,
-			service_tier: "priority",
+			...payload,
+			service_tier: speedMode === "fast" ? "priority" : "ultrafast",
 		};
 	});
 }

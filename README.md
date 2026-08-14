@@ -3,42 +3,46 @@
 <img width="679" height="485" alt="Screenshot 2026-07-11 at 10 38 19 AM" alt="Screenshot of a pi agent turn that utilizes the `pi-codex-fast` extension. User message reads, 'This is fast!'. Agent responds, 'Glad to hear it!'" src="https://github.com/user-attachments/assets/0d0bdd79-01a4-45ea-a978-da2869e31924" />
 
 
-Fast-mode extension for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) that injects `service_tier: "priority"` into supported OpenAI Codex requests.
+This [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) extension adds Fast and Ultrafast service tiers to supported OpenAI requests.
 
 ## Usage
 
 Inside pi:
 
-- `/codex-fast` to toggle
+- `/codex-fast` toggles Fast mode.
+- `/codex-ultrafast` toggles Ultrafast mode.
 
 From CLI:
 
 - `pi --fast`
+- `pi --ultrafast`
+
+You cannot enable both modes at the same time.
 
 ## Persistence
 
-The enabled/disabled state is read from pi's settings files:
+The extension reads the mode from these pi settings files:
 
 - global: `$PI_CODING_AGENT_DIR/settings.json` (or `~/.pi/agent/settings.json`)
 - project override: `<cwd>/.pi/settings.json`
 
-under the key `pi-codex-fast.enabled`.
+Use the key `pi-codex-fast.mode`. The allowed values are `off`, `fast`, and `ultrafast`. The extension also accepts the old `enabled` key.
 
 Writes go to the global settings file.
 
 ## Behavior
 
-The extension only patches provider payloads when all of these are true:
+Fast mode sets `service_tier: "priority"` for these models:
 
-- fast mode is enabled
-- the active model is one of:
-  - `openai-codex/gpt-5.4`
-  - `openai-codex/gpt-5.5`
-  - `openai-codex/gpt-5.6-sol`
-  - `openai-codex/gpt-5.6-terra`
-  - `openai-codex/gpt-5.6-luna`
+- `openai-codex/gpt-5.4`
+- `openai-codex/gpt-5.5`
+- `openai-codex/gpt-5.6-sol`
+- `openai-codex/gpt-5.6-terra`
+- `openai-codex/gpt-5.6-luna`
 
-All other requests are left unchanged.
+Ultrafast mode sets `service_tier: "ultrafast"` for `openai/gpt-5.6-sol`. Your OpenAI API project must have Ultrafast access.
+
+The extension does not change other requests.
 
 ## Example benchmark
 

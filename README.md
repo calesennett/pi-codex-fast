@@ -39,6 +39,7 @@ Fast mode sets `service_tier: "priority"` for these models:
 - `openai-codex/gpt-5.6-sol`
 - `openai-codex/gpt-5.6-terra`
 - `openai-codex/gpt-5.6-luna`
+- `openai-codex/gpt-6-astra`
 
 Ultrafast mode sets `service_tier: "ultrafast"` for `openai/gpt-5.6-sol`. Your OpenAI API project must have Ultrafast access.
 

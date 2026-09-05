@@ -1,6 +1,6 @@
 {
   "name": "@calesennett/pi-codex-fast",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "pi extension that adds Fast and Ultrafast service tiers to supported OpenAI requests.",
   "type": "module",
   "keywords": [

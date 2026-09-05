@@ -54,3 +54,4 @@ A local live benchmark is available in this repository under `evals/`. Three pai
 | `gpt-5.6-sol` | 1.52x | 1.58x | 1.57x |
 | `gpt-5.6-terra` | 1.05x | 1.34x | 1.33x |
 | `gpt-5.6-luna` | 1.30x | 2.31x | 2.25x |
+| `gpt-6-astra` | 2.24x | 2.59x | 2.55x |

@@ -14,8 +14,9 @@ const FAST_MODELS = [
 	"openai-codex/gpt-6-astra",
 	"openai-codex/gpt-6-sol",
 	"openai-codex/gpt-6-luna",
+	"openai-codex/gpt-6.1-sol",
 ];
-const ULTRAFAST_MODELS = ["openai/gpt-5.6-sol"];
+const ULTRAFAST_MODELS = ["openai/gpt-5.6-sol", "openai/gpt-6-astra", "openai-codex/gpt-6-astra"];
 
 const SPEED_MODE = { OFF: "off", FAST: "fast", ULTRAFAST: "ultrafast" } as const;
 type SpeedMode = (typeof SPEED_MODE)[keyof typeof SPEED_MODE];

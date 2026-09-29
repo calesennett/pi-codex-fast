@@ -8,6 +8,9 @@
     "pi-extension",
     "codex"
   ],
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
   "files": [
     "README.md",
     "assets/",

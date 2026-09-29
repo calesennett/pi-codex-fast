@@ -14,10 +14,12 @@ Inside pi:
 
 From CLI:
 
-- `pi --fast`
-- `pi --ultrafast`
+- `pi --speed off` disables speed mode, even when saved settings enable it.
+- `pi --speed fast` enables Fast mode.
+- `pi --speed ultrafast` enables Ultrafast mode.
+- `pi --fast` and `pi --ultrafast` remain supported aliases.
 
-You cannot enable both modes at the same time.
+CLI flags override global and project settings in memory only. Omitting them preserves the saved mode. Invalid `--speed` values and conflicting flags (such as `--speed off --fast` or `--fast --ultrafast`) are rejected. Matching aliases may be combined, such as `--speed fast --fast`.
 
 ## Persistence
 
@@ -28,7 +30,7 @@ The extension reads the mode from these pi settings files:
 
 Use the key `pi-codex-fast.mode`. The allowed values are `off`, `fast`, and `ultrafast`. The extension also accepts the old `enabled` key.
 
-Writes go to the global settings file.
+The `/codex-fast` and `/codex-ultrafast` commands write to the global settings file. Startup flags never write settings.
 
 ## Behavior
 
@@ -46,6 +48,10 @@ Fast mode sets `service_tier: "priority"` for these models:
 Ultrafast mode sets `service_tier: "ultrafast"` for `openai/gpt-5.6-sol`. Your OpenAI API project must have Ultrafast access.
 
 The extension does not change other requests.
+
+## Tests
+
+Run `npm test` with Node.js 22.6 or newer. Tests use temporary settings and mocked requests; no API calls are made.
 
 ## Example benchmark
 

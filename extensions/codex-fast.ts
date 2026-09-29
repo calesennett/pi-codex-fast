@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
@@ -19,6 +19,20 @@ const ULTRAFAST_MODELS = ["openai/gpt-5.6-sol"];
 
 const SPEED_MODE = { OFF: "off", FAST: "fast", ULTRAFAST: "ultrafast" } as const;
 type SpeedMode = (typeof SPEED_MODE)[keyof typeof SPEED_MODE];
+
+const startupSpeedMode = (pi: ExtensionAPI): SpeedMode | undefined => {
+	const speed = pi.getFlag("speed");
+	const fast = pi.getFlag("fast") === true;
+	const ultrafast = pi.getFlag("ultrafast") === true;
+	if (speed !== undefined && speed !== "off" && speed !== "fast" && speed !== "ultrafast") {
+		throw new Error("pi-codex-fast: --speed must be off, fast, or ultrafast");
+	}
+	if ((fast && ultrafast) || (fast && speed !== undefined && speed !== "fast") ||
+		(ultrafast && speed !== undefined && speed !== "ultrafast")) {
+		throw new Error("pi-codex-fast: conflicting --speed, --fast, or --ultrafast flags");
+	}
+	return speed ?? (ultrafast ? SPEED_MODE.ULTRAFAST : fast ? SPEED_MODE.FAST : undefined);
+};
 
 function currentModelName(ctx: ExtensionContext): string | undefined {
 	return ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
@@ -84,6 +98,7 @@ async function persistSpeedMode(mode: SpeedMode): Promise<void> {
 
 export default function codexFastExtension(pi: ExtensionAPI): void {
 	let speedMode: SpeedMode = SPEED_MODE.OFF;
+	let invalidStartupFlags = false;
 	let settingsWriteQueue: Promise<void> = Promise.resolve();
 
 	function persistState(mode: SpeedMode, ctx: ExtensionContext): void {
@@ -137,8 +152,18 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 		setSpeedMode(speedMode === mode ? SPEED_MODE.OFF : mode as SpeedMode, ctx);
 	}
 
-	async function reloadSpeedModeState(ctx: ExtensionContext, options?: { includeStartupFlag?: boolean }): Promise<void> {
+	async function reloadSpeedModeState(ctx: ExtensionContext): Promise<void> {
 		speedMode = SPEED_MODE.OFF;
+		updateStatus(ctx);
+
+		let startupMode: SpeedMode | undefined;
+		try {
+			startupMode = startupSpeedMode(pi);
+		} catch (error) {
+			invalidStartupFlags = true;
+			ctx.shutdown();
+			throw error;
+		}
 
 		try {
 			const persistedMode = await loadPersistedSpeedMode(ctx.cwd);
@@ -150,14 +175,14 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 			}
 		}
 
-		if (options?.includeStartupFlag) {
-			if (pi.getFlag("fast") === true) speedMode = SPEED_MODE.FAST;
-			if (pi.getFlag("ultrafast") === true) speedMode = SPEED_MODE.ULTRAFAST;
-		}
-
+		speedMode = startupMode ?? speedMode;
 		updateStatus(ctx);
 	}
 
+	pi.registerFlag("speed", {
+		description: "Override saved speed mode for this session: off, fast, or ultrafast",
+		type: "string",
+	});
 	pi.registerFlag("fast", {
 		description: "Start with fast mode enabled",
 		type: "boolean",
@@ -184,7 +209,12 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
-		await reloadSpeedModeState(ctx, { includeStartupFlag: true });
+		await reloadSpeedModeState(ctx);
+	});
+
+	// Print mode has no shutdown handler; do not submit prompts after invalid flags.
+	pi.on("input", () => {
+		if (invalidStartupFlags) return { action: "handled" };
 	});
 
 	pi.on("model_select", async (_event, ctx) => {

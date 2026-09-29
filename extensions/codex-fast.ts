@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
@@ -22,16 +22,8 @@ type SpeedMode = (typeof SPEED_MODE)[keyof typeof SPEED_MODE];
 
 const startupSpeedMode = (pi: ExtensionAPI): SpeedMode | undefined => {
 	const speed = pi.getFlag("speed");
-	const fast = pi.getFlag("fast") === true;
-	const ultrafast = pi.getFlag("ultrafast") === true;
-	if (speed !== undefined && speed !== "off" && speed !== "fast" && speed !== "ultrafast") {
-		throw new Error("pi-codex-fast: --speed must be off, fast, or ultrafast");
-	}
-	if ((fast && ultrafast) || (fast && speed !== undefined && speed !== "fast") ||
-		(ultrafast && speed !== undefined && speed !== "ultrafast")) {
-		throw new Error("pi-codex-fast: conflicting --speed, --fast, or --ultrafast flags");
-	}
-	return speed ?? (ultrafast ? SPEED_MODE.ULTRAFAST : fast ? SPEED_MODE.FAST : undefined);
+	if (speed === undefined || speed === "off" || speed === "fast" || speed === "ultrafast") return speed;
+	throw new Error("pi-codex-fast: --speed must be off, fast, or ultrafast");
 };
 
 function currentModelName(ctx: ExtensionContext): string | undefined {
@@ -182,16 +174,6 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	pi.registerFlag("speed", {
 		description: "Override saved speed mode for this session: off, fast, or ultrafast",
 		type: "string",
-	});
-	pi.registerFlag("fast", {
-		description: "Start with fast mode enabled",
-		type: "boolean",
-		default: false,
-	});
-	pi.registerFlag("ultrafast", {
-		description: "Start with ultrafast mode enabled",
-		type: "boolean",
-		default: false,
 	});
 
 	pi.registerCommand("codex-fast", {

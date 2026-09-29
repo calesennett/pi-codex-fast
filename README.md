@@ -42,8 +42,15 @@ Fast mode sets `service_tier: "priority"` for these models:
 - `openai-codex/gpt-6-astra`
 - `openai-codex/gpt-6-sol`
 - `openai-codex/gpt-6-luna`
+- `openai-codex/gpt-6.1-sol`
 
-Ultrafast mode sets `service_tier: "ultrafast"` for `openai/gpt-5.6-sol`. Your OpenAI API project must have Ultrafast access.
+Ultrafast mode sets `service_tier: "ultrafast"` for these models:
+
+- `openai/gpt-5.6-sol`
+- `openai/gpt-6-astra`
+- `openai-codex/gpt-6-astra`
+
+Before you use Ultrafast mode, check the [Codex access requirements](https://learn.chatgpt.com/docs/agent-configuration/speed) or the [API access requirements](https://developers.openai.com/api/docs/guides/ultrafast-mode).
 
 The extension does not change other requests.
 
@@ -59,3 +66,4 @@ A local live benchmark is available in this repository under `evals/`. Three pai
 | `gpt-6-astra` | 2.24x | 2.59x | 2.55x |
 | `gpt-6-sol` | 1.25x | 1.07x | 1.06x |
 | `gpt-6-luna` | 1.02x | 2.02x | 1.98x |
+| `gpt-6.1-sol` | 2.74x | 1.92x | 1.89x |

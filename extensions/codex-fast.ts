@@ -6,16 +6,16 @@ import { type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-cod
 const STATUS_KEY = "fast-priority";
 const SETTINGS_KEY = "pi-codex-fast";
 const FAST_MODELS = [
-	"openai-codex/gpt-5.4",
-	"openai-codex/gpt-5.5",
-	"openai-codex/gpt-5.6-sol",
-	"openai-codex/gpt-5.6-terra",
-	"openai-codex/gpt-5.6-luna",
-	"openai-codex/gpt-6-astra",
-	"openai-codex/gpt-6-sol",
-	"openai-codex/gpt-6-luna",
-	"openai-codex/gpt-6.1-sol",
-];
+	"gpt-5.4",
+	"gpt-5.5",
+	"gpt-5.6-sol",
+	"gpt-5.6-terra",
+	"gpt-5.6-luna",
+	"gpt-6-astra",
+	"gpt-6-sol",
+	"gpt-6-luna",
+	"gpt-6.1-sol",
+].flatMap((model) => [`openai/${model}`, `openai-codex/${model}`]);
 const ULTRAFAST_MODELS = ["openai/gpt-5.6-sol", "openai/gpt-6-astra", "openai-codex/gpt-6-astra"];
 
 const SPEED_MODE = { OFF: "off", FAST: "fast", ULTRAFAST: "ultrafast" } as const;

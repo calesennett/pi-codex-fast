@@ -34,15 +34,19 @@ Writes go to the global settings file.
 
 Fast mode sets `service_tier: "priority"` for these models:
 
-- `openai-codex/gpt-5.4`
-- `openai-codex/gpt-5.5`
-- `openai-codex/gpt-5.6-sol`
-- `openai-codex/gpt-5.6-terra`
-- `openai-codex/gpt-5.6-luna`
-- `openai-codex/gpt-6-astra`
-- `openai-codex/gpt-6-sol`
-- `openai-codex/gpt-6-luna`
-- `openai-codex/gpt-6.1-sol`
+- `openai/gpt-5.4`
+- `openai/gpt-5.5`
+- `openai/gpt-5.6-sol`
+- `openai/gpt-5.6-terra`
+- `openai/gpt-5.6-luna`
+- `openai/gpt-6-astra`
+- `openai/gpt-6-sol`
+- `openai/gpt-6-luna`
+- `openai/gpt-6.1-sol`
+
+For each model in this list, you can also use the `openai-codex/` prefix.
+This prefix identifies the legacy provider.
+Fast mode sets `service_tier: "priority"` with either prefix.
 
 Ultrafast mode sets `service_tier: "ultrafast"` for these models:
 

@@ -154,6 +154,7 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 		if (options?.includeStartupFlag) {
 			if (pi.getFlag("fast") === true) speedMode = SPEED_MODE.FAST;
 			if (pi.getFlag("ultrafast") === true) speedMode = SPEED_MODE.ULTRAFAST;
+			if (pi.getFlag("no-fast") === true) speedMode = SPEED_MODE.OFF;
 		}
 
 		updateStatus(ctx);
@@ -166,6 +167,12 @@ export default function codexFastExtension(pi: ExtensionAPI): void {
 	});
 	pi.registerFlag("ultrafast", {
 		description: "Start with ultrafast mode enabled",
+		type: "boolean",
+		default: false,
+	});
+
+	pi.registerFlag("no-fast", {
+		description: "Start with Fast and Ultrafast modes disabled",
 		type: "boolean",
 		default: false,
 	});

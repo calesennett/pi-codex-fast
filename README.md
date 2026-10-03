@@ -3,7 +3,7 @@
 <img width="679" height="485" alt="Screenshot 2026-07-11 at 10 38 19 AM" alt="Screenshot of a pi agent turn that utilizes the `pi-codex-fast` extension. User message reads, 'This is fast!'. Agent responds, 'Glad to hear it!'" src="https://github.com/user-attachments/assets/0d0bdd79-01a4-45ea-a978-da2869e31924" />
 
 
-This [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) extension adds Fast and Ultrafast service tiers to supported OpenAI requests.
+This [pi](https://github.com/earendil-works/pi/tree/main/packages/coding-agent) extension adds Fast and Ultrafast service tiers to supported OpenAI requests.
 
 ## Usage
 
@@ -16,8 +16,11 @@ From CLI:
 
 - `pi --fast`
 - `pi --ultrafast`
+- `pi --no-fast` disables Fast and Ultrafast modes.
 
 You cannot enable both modes at the same time.
+`--no-fast` overrides saved settings, `--fast`, and `--ultrafast`.
+CLI flags do not change saved settings.
 
 ## Persistence
 

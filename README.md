@@ -56,6 +56,8 @@ Ultrafast mode sets `service_tier: "ultrafast"` for these models:
 - `openai/gpt-5.6-sol`
 - `openai/gpt-6-astra`
 - `openai-codex/gpt-6-astra`
+- `openai/gpt-6.1-sol`
+- `openai-codex/gpt-6.1-sol`
 
 Before you use Ultrafast mode, check the [Codex access requirements](https://learn.chatgpt.com/docs/agent-configuration/speed) or the [API access requirements](https://developers.openai.com/api/docs/guides/ultrafast-mode).
 

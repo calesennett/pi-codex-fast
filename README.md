@@ -46,6 +46,7 @@ Fast mode sets `service_tier: "priority"` for these models:
 - `openai/gpt-6-sol`
 - `openai/gpt-6-luna`
 - `openai/gpt-6.1-sol`
+- `openai/gpt-6.1-terra`
 
 For each model in this list, you can also use the `openai-codex/` prefix.
 This prefix identifies the legacy provider.
@@ -76,3 +77,4 @@ A local live benchmark is available in this repository under `evals/`. Three pai
 | `gpt-6-sol` | 1.25x | 1.07x | 1.06x |
 | `gpt-6-luna` | 1.02x | 2.02x | 1.98x |
 | `gpt-6.1-sol` | 2.74x | 1.92x | 1.89x |
+| `gpt-6.1-terra` | 1.25x | 1.32x | 1.30x |

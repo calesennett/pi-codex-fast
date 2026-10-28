@@ -15,6 +15,7 @@ const FAST_MODELS = [
 	"gpt-6-sol",
 	"gpt-6-luna",
 	"gpt-6.1-sol",
+	"gpt-6.1-terra",
 ].flatMap((model) => [`openai/${model}`, `openai-codex/${model}`]);
 const ULTRAFAST_MODELS = [
 	"openai/gpt-5.6-sol",

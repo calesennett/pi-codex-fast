@@ -47,6 +47,8 @@ Fast mode sets `service_tier: "priority"` for these models:
 - `openai/gpt-6-luna`
 - `openai/gpt-6.1-sol`
 - `openai/gpt-6.1-terra`
+- `openai/gpt-6.2-sol`
+- `openai/gpt-6.2-astra`
 
 For each model in this list, you can also use the `openai-codex/` prefix.
 This prefix identifies the legacy provider.
@@ -59,6 +61,10 @@ Ultrafast mode sets `service_tier: "ultrafast"` for these models:
 - `openai-codex/gpt-6-astra`
 - `openai/gpt-6.1-sol`
 - `openai-codex/gpt-6.1-sol`
+- `openai/gpt-6.2-sol`
+- `openai-codex/gpt-6.2-sol`
+- `openai/gpt-6.2-astra`
+- `openai-codex/gpt-6.2-astra`
 
 Before you use Ultrafast mode, check the [Codex access requirements](https://learn.chatgpt.com/docs/agent-configuration/speed) or the [API access requirements](https://developers.openai.com/api/docs/guides/ultrafast-mode).
 
@@ -66,7 +72,7 @@ The extension does not change other requests.
 
 ## Example benchmark
 
-A local live benchmark is available in this repository under `evals/`. Three paired trials per model produced:
+The live benchmark in `evals/` compares Fast mode with the default service tier. Speedups are ratios of median times across three paired trials per model.
 
 | Model | TTFB speedup | Turn speedup | Wall speedup |
 | --- | ---: | ---: | ---: |
@@ -78,3 +84,5 @@ A local live benchmark is available in this repository under `evals/`. Three pai
 | `gpt-6-luna` | 1.02x | 2.02x | 1.98x |
 | `gpt-6.1-sol` | 2.74x | 1.92x | 1.89x |
 | `gpt-6.1-terra` | 1.25x | 1.32x | 1.30x |
+| `gpt-6.2-sol` | 1.12x | 1.46x | 1.45x |
+| `gpt-6.2-astra` | 1.36x | 1.45x | 1.44x |
